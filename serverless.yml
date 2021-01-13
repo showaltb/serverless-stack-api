@@ -15,6 +15,22 @@ provider:
   stage: prod
   region: us-east-1
 
+  # environment variables made available to our functions
+  environment:
+    tableName: notes
+
+  # permission policy for the functions
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Scan
+        - dynamodb:Query
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DescribeTable
+      Resource: "arn:aws:dynamodb:us-east-1:*:table/notes"
+
 functions:
   hello:
     handler: handler.hello
@@ -22,3 +38,9 @@ functions:
       - http:
           path: hello
           method: get
+  create:
+    handler: create.main
+    events:
+      - http:
+        path: notes
+        method: post
