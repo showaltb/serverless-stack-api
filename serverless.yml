@@ -36,5 +36,11 @@ functions:
     handler: create.main
     events:
       - http:
-        path: notes
-        method: post
+          path: notes
+          method: post
+  get:
+    handler: get.main
+    events:
+      - http:
+          path: notes/{id}
+          method: get
