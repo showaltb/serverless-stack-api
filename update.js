@@ -4,7 +4,7 @@ import dynamoDb from "./libs/dynamodb-lib";
 export const main = handler(async (event, context) => {
   const data = JSON.parse(event.body);
   const params = {
-    TableName: process.env.tableName,
+    TableName: process.env.TABLE_NAME,
     // 'Key' defines the partition key and sort key of the item to be updated
     Key: {
       userId: "123", // The id of the author

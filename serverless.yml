@@ -12,14 +12,13 @@ plugins:
 provider:
   name: aws
   runtime: nodejs12.x
-  stage: prod
-  region: us-east-1
+  region: ${env:AWS_REGION, 'us-east-1'}
   memorySize: 128
   timeout: 5
 
   # environment variables made available to our functions
   environment:
-    tableName: notes
+    TABLE_NAME: ${self:service}-${opt:stage, self:provider.stage}-notes
 
   # permission policy for the functions
   iamRoleStatements:
@@ -31,7 +30,7 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DescribeTable
-      Resource: "arn:aws:dynamodb:us-east-1:*:table/notes"
+      Resource: "arn:aws:dynamodb:us-east-1:*:table/${self:provider.environment.TABLE_NAME}"
 
 functions:
   create:
@@ -67,3 +66,21 @@ functions:
       - http:
           path: notes/{id}
           method: delete
+
+resources:
+  Resources:
+    NotesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.TABLE_NAME}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: noteId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: noteId
+            KeyType: RANGE
