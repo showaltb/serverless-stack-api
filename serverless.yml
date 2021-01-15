@@ -76,7 +76,6 @@ resources:
     NotesTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: ${self:provider.environment.TABLE_NAME}
         BillingMode: PAY_PER_REQUEST
         AttributeDefinitions:
           - AttributeName: userId
@@ -88,3 +87,92 @@ resources:
             KeyType: HASH
           - AttributeName: noteId
             KeyType: RANGE
+        TableName: ${self:provider.environment.TABLE_NAME}
+
+    UserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        Schema:
+          - Name: email
+            Required: true
+        UsernameAttributes:
+          - email
+        UsernameConfiguration:
+          CaseSensitive: false
+        UserPoolName: ${self:service}-${opt:stage, self:provider.stage}
+
+    UserPoolDomain:
+      Type: AWS::Cognito::UserPoolDomain
+      Properties:
+        Domain: !Sub "${self:service}-${opt:stage, self:provider.stage}-${AWS::AccountId}"
+        UserPoolId: !Ref UserPool
+
+    UserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        AllowedOAuthFlowsUserPoolClient: false
+        ClientName: ${self:service}-${opt:stage, self:provider.stage}-client
+        ExplicitAuthFlows:
+          - ALLOW_ADMIN_USER_PASSWORD_AUTH
+          - ALLOW_CUSTOM_AUTH
+          - ALLOW_REFRESH_TOKEN_AUTH
+          - ALLOW_USER_SRP_AUTH
+        GenerateSecret: false
+        PreventUserExistenceErrors: ENABLED
+        SupportedIdentityProviders:
+          - COGNITO
+        UserPoolId: !Ref UserPool
+
+    IdentityPool:
+      Type: AWS::Cognito::IdentityPool
+      Properties:
+        AllowClassicFlow: false
+        AllowUnauthenticatedIdentities: false
+        CognitoIdentityProviders:
+          - ClientId: !Ref UserPoolClient
+            ProviderName: !GetAtt UserPool.ProviderName
+            ServerSideTokenCheck: false
+        IdentityPoolName: ${self:service}-${opt:stage, self:provider.stage}
+
+    IdentityPoolRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: !Sub '${self:service}-${opt:stage, self:provider.stage}-${AWS::Region}-identity-role'
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Federated: cognito-identity.amazonaws.com
+              Action: sts:AssumeRoleWithWebIdentity
+              Condition:
+                StringEquals:
+                  cognito-identity.amazonaws.com:aud: !Ref IdentityPool
+                ForAnyValue:StringLike:
+                  cognito-identity.amazonaws.com:amr: authenticated
+        Policies:
+          - PolicyName: IdentityPoolPolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - mobileanalytics:PutEvents
+                    - cognito-sync:*
+                    - cognito-identity:*
+                  Resource: '*'
+                - Effect: Allow
+                  Action:
+                    - execute-api:Invoke
+                  Resource: !Sub 'arn:aws:s3:::${AWS::Region}:*:${ApiGatewayRestApi}/*/*/*'
+                # - Effect: Allow
+                #   Action:
+                #     - s3:*
+                #   Resource: !Sub 'arn:aws:s3:::${self.provider.environment.UPLOADS_BUCKET}/private/${cognito-identity.amazonaws.com:sub}/*'
+
+    IdentityPoolRoleAttachment:
+      Type: AWS::Cognito::IdentityPoolRoleAttachment
+      Properties:
+        IdentityPoolId: !Ref IdentityPool
+        Roles:
+          authenticated: !GetAtt IdentityPoolRole.Arn
