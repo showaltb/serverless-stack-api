@@ -1,5 +1,7 @@
 service: notes-api
 
+useDotenv: true
+
 # Create an optimized package for our functions
 package:
   individually: true
@@ -7,7 +9,6 @@ package:
 plugins:
   - serverless-bundle # Package our functions with Webpack
   - serverless-offline
-  - serverless-dotenv-plugin # Load .env as environment variables
 
 provider:
   name: aws
@@ -15,6 +16,9 @@ provider:
   region: ${env:AWS_REGION, 'us-east-1'}
   memorySize: 128
   timeout: 5
+  apiGateway:
+    shouldStartNameWithService: true
+  lambdaHashingVersion: 20201221
 
   # environment variables made available to our functions
   environment:
