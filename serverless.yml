@@ -43,12 +43,15 @@ functions:
       - http:
           path: notes
           method: post
+          authorizer: aws_iam
+
   get:
     handler: get.main
     events:
       - http:
           path: notes/{id}
           method: get
+          authorizer: aws_iam
 
   list:
     handler: list.main
@@ -56,6 +59,7 @@ functions:
       - http:
           path: notes
           method: get
+          authorizer: aws_iam
 
   update:
     handler: update.main
@@ -63,6 +67,7 @@ functions:
       - http:
           path: notes/{id}
           method: put
+          authorizer: aws_iam
 
   delete:
     handler: delete.main
@@ -70,6 +75,7 @@ functions:
       - http:
           path: notes/{id}
           method: delete
+          authorizer: aws_iam
 
 resources:
   Resources:
@@ -164,7 +170,8 @@ resources:
                 - Effect: Allow
                   Action:
                     - execute-api:Invoke
-                  Resource: !Sub 'arn:aws:s3:::${AWS::Region}:*:${ApiGatewayRestApi}/*/*/*'
+                  Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:*:${ApiGatewayRestApi}/*/*/*'
+                  # Resource: '*'
                 # - Effect: Allow
                 #   Action:
                 #     - s3:*
