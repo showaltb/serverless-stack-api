@@ -77,6 +77,16 @@ functions:
           method: delete
           authorizer: aws_iam
 
+  billing:
+    handler: billing.main
+    events:
+      - http:
+          path: billing
+          method: post
+          authorizer: aws_iam
+    environment:
+      STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY}
+
 resources:
   Resources:
     NotesTable:
@@ -171,7 +181,6 @@ resources:
                   Action:
                     - execute-api:Invoke
                   Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:*:${ApiGatewayRestApi}/*/*/*'
-                  # Resource: '*'
                 # - Effect: Allow
                 #   Action:
                 #     - s3:*
